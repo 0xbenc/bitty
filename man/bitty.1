@@ -1,0 +1,46 @@
+.TH BITTY 1 "September 2026" "bitty" "User Commands"
+.SH NAME
+bitty \- set Conway's Game of Life loose in your terminal
+.SH SYNOPSIS
+.B bitty
+.RI [ options ]
+.SH DESCRIPTION
+Bitty is an interactive Game of Life editor and simulator. It renders two Life
+rows in each terminal row using Unicode half blocks.
+.SH OPTIONS
+.TP
+.BI --density " N"
+Initial live-cell density from 0 through 1 (default 0.25).
+.TP
+.BI --speed " N"
+Generations per second from 1 through 60 (default 12).
+.TP
+.BI --seed " N"
+Random seed. The current time is used by default.
+.TP
+.BI --width " N"
+World width. Defaults to the terminal width.
+.TP
+.BI --height " N"
+World height. Defaults to twice the available terminal height.
+.TP
+.BI --wrap=false
+Treat cells beyond the world edges as dead.
+.TP
+.B --paused
+Start paused.
+.TP
+.BR --intro , --no-intro
+Force or suppress the once-per-version startup animation.
+.TP
+.B --no-color
+Disable ANSI colors.
+.TP
+.B --version
+Print version information.
+.SH KEYS
+Arrow keys or hjkl move; space toggles a cell; p pauses; n steps; r randomizes;
+c clears; + and - change speed; w toggles wrapping; q quits.
+.SH ENVIRONMENT
+BITTY_STATE_DIR, BITTY_THEME_FILE, BITTY_INTRO_ALWAYS, BITTY_NO_INTRO,
+BITTY_NO_COLOR, and NO_COLOR are recognized.

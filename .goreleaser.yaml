@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: bitty
+
+before:
+  hooks:
+    - go mod verify
+
+builds:
+  - id: bitty
+    main: ./cmd/bitty
+    binary: bitty
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.FullCommit}}
+      - -X main.date={{.CommitDate}}
+
+archives:
+  - id: bitty
+    ids:
+      - bitty
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - completions/*
+      - man/*
+
+homebrew_casks:
+  - name: bitty
+    ids:
+      - bitty
+    binaries:
+      - bitty
+    manpages:
+      - man/bitty.1
+    completions:
+      bash: completions/bitty.bash
+      zsh: completions/bitty.zsh
+      fish: completions/bitty.fish
+    homepage: https://github.com/0xbenc/bitty
+    description: Set life loose in your terminal.
+    repository:
+      owner: 0xbenc
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@users.noreply.github.com
+
+checksum:
+  name_template: checksums.txt
+
+sboms:
+  - artifacts: archive
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "bitty {{ .Tag }}"
