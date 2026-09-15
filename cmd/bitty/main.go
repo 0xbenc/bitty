@@ -74,6 +74,29 @@ func run(args []string) error {
 
 func parse(args []string) (options, error) {
 	o := options{density: .25, speed: 12, seed: uint64(time.Now().UnixNano()), wrap: true}
+	fs := newFlagSet(&o)
+	if err := fs.Parse(args); err != nil {
+		return options{}, err
+	}
+	if fs.NArg() != 0 {
+		return options{}, fmt.Errorf("unexpected argument %q", fs.Arg(0))
+	}
+	if o.width < 0 || o.height < 0 {
+		return options{}, fmt.Errorf("width and height cannot be negative")
+	}
+	if o.density < 0 || o.density > 1 {
+		return options{}, fmt.Errorf("density must be between 0 and 1")
+	}
+	if o.speed < 1 || o.speed > 60 {
+		return options{}, fmt.Errorf("speed must be between 1 and 60")
+	}
+	if o.intro && o.noIntro {
+		return options{}, fmt.Errorf("--intro and --no-intro cannot be used together")
+	}
+	return o, nil
+}
+
+func newFlagSet(o *options) *flag.FlagSet {
 	fs := flag.NewFlagSet("bitty", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	fs.IntVar(&o.width, "width", 0, "world width (default: terminal width)")
@@ -101,27 +124,9 @@ func parse(args []string) (options, error) {
 		fmt.Fprintln(fs.Output(), "\nOptions:")
 		fs.PrintDefaults()
 		fmt.Fprintln(fs.Output(), "\nKeys: arrows/hjkl move, space toggles, p pauses, n steps, r randomizes,")
-		fmt.Fprintln(fs.Output(), "      c clears, +/- changes speed, w toggles wrapping, q quits")
+		fmt.Fprintln(fs.Output(), "      c clears, +/- changes speed, w toggles wrapping, Esc/Ctrl-C/Ctrl-Q quit")
 	}
-	if err := fs.Parse(args); err != nil {
-		return options{}, err
-	}
-	if fs.NArg() != 0 {
-		return options{}, fmt.Errorf("unexpected argument %q", fs.Arg(0))
-	}
-	if o.width < 0 || o.height < 0 {
-		return options{}, fmt.Errorf("width and height cannot be negative")
-	}
-	if o.density < 0 || o.density > 1 {
-		return options{}, fmt.Errorf("density must be between 0 and 1")
-	}
-	if o.speed < 1 || o.speed > 60 {
-		return options{}, fmt.Errorf("speed must be between 1 and 60")
-	}
-	if o.intro && o.noIntro {
-		return options{}, fmt.Errorf("--intro and --no-intro cannot be used together")
-	}
-	return o, nil
+	return fs
 }
 
 func maybePlayIntro(opts options, noColor bool) {

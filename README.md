@@ -20,7 +20,7 @@ bitty
 | `c` | clear and pause |
 | `+` / `-` | change simulation speed |
 | `w` | toggle edge wrapping |
-| `q` or `Ctrl-C` | quit |
+| `Esc`, `Ctrl-C`, or `Ctrl-Q` | quit |
 
 The simulation starts immediately with a random field. Use `--paused` to begin
 in editing mode and `--density 0` for an empty canvas.

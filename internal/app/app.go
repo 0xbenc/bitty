@@ -147,8 +147,24 @@ func readKeys(r io.Reader, dst chan<- key) {
 			return
 		}
 		if b == 0x1b {
+			if reader.Buffered() == 0 {
+				// Bare esc: terminals send an escape sequence as one burst, so a
+				// real sequence's '[' would already be buffered.
+				dst <- keyQuit
+				continue
+			}
 			second, err := reader.ReadByte()
-			if err != nil || second != '[' {
+			if err != nil {
+				// EOF right after esc: honor the esc as a quit before closing.
+				dst <- keyQuit
+				close(dst)
+				return
+			}
+			if second != '[' {
+				// A buffered second byte that is not part of a sequence (e.g. the
+				// tail of an alt+key chord) degrades to the plain key instead of
+				// being swallowed.
+				dispatchByte(second, dst)
 				continue
 			}
 			third, err := reader.ReadByte()
@@ -167,34 +183,41 @@ func readKeys(r io.Reader, dst chan<- key) {
 			}
 			continue
 		}
-		switch b {
-		case 3, 'q':
-			dst <- keyQuit
-		case ' ', 'x':
-			dst <- keyToggle
-		case '\r', '\n', 'p':
-			dst <- keyPause
-		case 'n':
-			dst <- keyStep
-		case 'r':
-			dst <- keyRandom
-		case 'c':
-			dst <- keyClear
-		case 'w':
-			dst <- keyWrap
-		case '+', '=':
-			dst <- keyFaster
-		case '-', '_':
-			dst <- keySlower
-		case 'k':
-			dst <- keyUp
-		case 'j':
-			dst <- keyDown
-		case 'h':
-			dst <- keyLeft
-		case 'l':
-			dst <- keyRight
-		}
+		dispatchByte(b, dst)
+	}
+}
+
+// dispatchByte maps one plain input byte to a key. Quit is letter-free per the
+// ecosystem flow contract: only ctrl+c (0x03), ctrl+q (0x11), and bare esc
+// quit; 'q' is inert like any other unbound letter.
+func dispatchByte(b byte, dst chan<- key) {
+	switch b {
+	case 3, 0x11:
+		dst <- keyQuit
+	case ' ', 'x':
+		dst <- keyToggle
+	case '\r', '\n', 'p':
+		dst <- keyPause
+	case 'n':
+		dst <- keyStep
+	case 'r':
+		dst <- keyRandom
+	case 'c':
+		dst <- keyClear
+	case 'w':
+		dst <- keyWrap
+	case '+', '=':
+		dst <- keyFaster
+	case '-', '_':
+		dst <- keySlower
+	case 'k':
+		dst <- keyUp
+	case 'j':
+		dst <- keyDown
+	case 'h':
+		dst <- keyLeft
+	case 'l':
+		dst <- keyRight
 	}
 }
 
@@ -300,7 +323,7 @@ func (m *Model) Render(cols, rows int) string {
 			{Key: "arrows", Label: "move"}, {Key: "space", Label: "cell"},
 			{Key: "p", Label: "pause"}, {Key: "n", Label: "step"},
 			{Key: "r", Label: "random"}, {Key: "c", Label: "clear"},
-			{Key: "+/-", Label: "speed"}, {Key: "w", Label: "wrap"}, {Key: "q", Label: "quit"},
+			{Key: "+/-", Label: "speed"}, {Key: "w", Label: "wrap"}, {Key: "esc", Label: "quit"},
 		}
 		footer := termchrome.Footer(hints, cols)
 		b.WriteString(termstyle.Truncate(m.theme.Style(termstyle.RoleMuted, footer), cols))
